@@ -36,15 +36,14 @@ class TaskStore:
         limit: int = 20,
     ) -> list[Task]:
         items = list(self._tasks.values())
-        page = items[offset : offset + limit]
 
         if status is not None:
-            page = [t for t in page if t.status == status]
+            items = [t for t in items if t.status == status]
 
         if q is not None:
-            page = [t for t in page if q in t.title]
+            items = [t for t in items if q in t.title]
 
-        return page
+        return items[offset : offset + limit]
 
     def get_task(self, task_id: int) -> Optional[Task]:
         return self._tasks.get(task_id)
@@ -63,11 +62,14 @@ class TaskStore:
         if payload.priority is not None:
             task.priority = payload.priority
 
-        task.tags = list(payload.tags or [])
+        if payload.tags is not None:
+            task.tags = list(payload.tags)
+
+        task.updated_at = datetime.now(timezone.utc)
         return task
 
-    def delete_task(self, task_id: int) -> Task:
-        return self._tasks.pop(task_id)
+    def delete_task(self, task_id: int) -> Optional[Task]:
+        return self._tasks.pop(task_id, None)
 
     def stats(self) -> dict[str, int]:
         counts = {s.value: 0 for s in TaskStatus}
